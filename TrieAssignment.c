@@ -2,68 +2,89 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ALPHABET 26
+#define BUFF 1024
+
 // Trie structure
 struct Trie
 {	
-struct Trie *children[26];
-    bool isEndOfWord;
+    struct Trie *children[ALPHABET];
     int count;
 };
-
-// Inserts the word to the trie structure
-void insert(struct Trie *ppTrie, char *word)
+// Initializes a trie structure
+struct Trie *createTrie()
 {
-	struct Trie *pTrie = *ppTrie;
-    for (int i = 0; i < strlen(word); i++) {
-        int index = word[i] - 'a';
-        if (pTrie->children[index] == NULL) {
-            pTrie->children[index] = (struct Trie *)malloc(sizeof(struct Trie));
-            for (int j = 0; j < 26; j++) {
-                pTrie->children[index]->children[j] = NULL;
-            }
-            pTrie->children[index]->isEndOfWord = false;
-            pTrie->children[index]->count = 0;
-        }
-        pTrie = pTrie->children[index];
+    struct Trie *tmp = malloc(sizeof(struct Trie));
+    int i;
+    for( i = 0; i < ALPHABET; i++){
+        tmp -> children[i] = NULL;
     }
-    pTrie->isEndOfWord = true;
-    pTrie->count++;
+    tmp -> count = 0;
+    return tmp;
+
+}
+// Inserts the word to the trie structure
+void insert(struct Trie *pTrie, char *word)
+{
+    int len = strlen(word), i = 0;
+    struct Trie *tmp = pTrie;
+    for(i = 0; i < len; i++){
+        if(tmp -> children[word[i] - 'a'] == NULL)
+            tmp -> children[word[i] - 'a'] = createTrie();
+        tmp = tmp -> children[word[i] - 'a'];
+    }
+    tmp -> count++;
+    return;
 }
 
 // computes the number of occurances of the word
 int numberOfOccurances(struct Trie *pTrie, char *word)
 {
-	for (int i = 0; i < strlen(word); i++) {
+    struct Trie* curr = pTrie;
+    int i;
+    for (i = 0; i < strlen(word); i++) {
         int index = word[i] - 'a';
-        if (pTrie->children[index] == NULL) {
+        if (curr->children[index] == NULL) {
             return 0;
         }
-        pTrie = pTrie->children[index];
+        curr = curr->children[index];
     }
-    if (pTrie->isEndOfWord) {
-        return pTrie->count;
-    } else {
-        return 0;
-    }
+    return curr->count;
 }
 
 // deallocate the trie structure
 struct Trie *deallocateTrie(struct Trie *pTrie)
 {
-	
-}
-
-// Initializes a trie structure
-struct Trie *createTrie()
-{
-	
+    if (pTrie == NULL) {
+            return NULL;
+    }
+    int i =0;
+    for (i = 0; i < ALPHABET; i++) {
+        if (pTrie->children[i] != NULL) {
+            deallocateTrie(pTrie->children[i]);
+        }
+    }
+    free(pTrie);
+    return NULL;
 }
 
 // this function will return number of words in the dictionary,
 // and read all the words in the dictionary to the structure words
 int readDictionary(char *filename, char **pInWords)
 {
-	
+    FILE *fp = fopen(filename, "r");
+    int dataSz = 0, i = 0;
+    char tmp[BUFF];
+    if(fp != NULL){
+        fscanf(fp, "%d\n", &dataSz);
+        while(fscanf(fp, "%s", tmp) != EOF){
+            pInWords[i] = malloc(strlen(tmp) + 1);
+            strcpy(pInWords[i], tmp);
+            i++;
+        }
+    }
+    fclose(fp);
+    return dataSz;
 }
 
 int main(void)
@@ -72,19 +93,20 @@ int main(void)
 	
 	//read the number of the words in the dictionary
 	int numWords = readDictionary("dictionary.txt", inWords);
-	for (int i=0;i<numWords;++i)
+	int i;
+	for (i=0;i<numWords;++i)
 	{
 		printf("%s\n",inWords[i]);
 	}
 	
 	struct Trie *pTrie = createTrie();
-	for (int i=0;i<numWords;i++)
+	for (i=0;i<numWords;i++)
 	{
 		insert(pTrie, inWords[i]);
 	}
 	// parse lineby line, and insert each word to the trie data structure
 	char *pWords[] = {"notaword", "ucf", "no", "note", "corg"};
-	for (int i=0;i<5;i++)
+	for (i=0;i<5;i++)
 	{
 		printf("\t%s : %d\n", pWords[i], numberOfOccurances(pTrie, pWords[i]));
 	}
